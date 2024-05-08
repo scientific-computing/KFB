@@ -59,6 +59,18 @@ contains
 
     ! assign activation function
     select case(trim(activation))
+      case('swish')
+        layer % activation => swish
+        layer % activation_prime => swish_prime
+      case('silu')
+        layer % activation => swish
+        layer % activation_prime => swish_prime
+      case('elu')
+        layer % activation => elu
+        layer % activation_prime => elu_prime
+      case('exponential')
+        layer % activation => exponential
+        layer % activation_prime => exponential_prime
       case('gaussian')
         layer % activation => gaussian
         layer % activation_prime => gaussian_prime
@@ -71,6 +83,9 @@ contains
       case('sigmoid')
         layer % activation => sigmoid
         layer % activation_prime => sigmoid_prime
+      case('softplus')
+        layer % activation => softplus
+        layer % activation_prime => softplus_prime
       case('step')
         layer % activation => step
         layer % activation_prime => step_prime

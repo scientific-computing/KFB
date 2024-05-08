@@ -16,6 +16,10 @@ module mod_activation
   public :: tanhf, tanh_prime
   public :: linear, linear_prime
   public :: leaky_relu, leaky_relu_prime
+  public :: elu, elu_prime
+  public :: exponential, exponential_prime
+  public :: softplus, softplus_prime
+  public :: swish, swish_prime
 
   interface
     pure function activation_function(x, alpha)
@@ -28,6 +32,64 @@ module mod_activation
 
 contains
 
+  pure function swish(x, alpha) result(res)
+    !! swish (or silu) activation function.
+    !! beta is fixed (i.e., beta==1.).
+    real(rk), intent(in) :: x(:)
+    real(rk), intent(in) :: alpha
+    real(rk) :: res(size(x))
+    res = x * sigmoid(x, -999._rk)
+  end function swish
+
+  pure function swish_prime(x, alpha) result(res)
+    ! First derivative of swish activation function.
+    ! beta is fixed (i.e., beta==1.).
+    real(rk), intent(in) :: x(:)
+    real(rk), intent(in) :: alpha
+    real(rk) :: res(size(x))
+    res = sigmoid(x, -999._rk) + x * sigmoid_prime(x, -999._rk)
+  end function swish_prime
+
+  pure function elu(x, alpha) result(res)
+    !! Exponential Linear Unit (ELU) activation function.
+    real(rk), intent(in) :: x(:)
+    real(rk), intent(in) :: alpha
+    real(rk) :: res(size(x))
+    where (x > 0)
+      res = x
+    elsewhere
+      res = alpha * (exp(x) - 1)
+    end where
+  end function elu
+
+  pure function elu_prime(x, alpha) result(res)
+    ! First derivative of the Exponential Linear Unit (ELU) activation function.
+    real(rk), intent(in) :: x(:)
+    real(rk), intent(in) :: alpha
+    real(rk) :: res(size(x))
+    where (x > 0)
+      res = 1
+    elsewhere
+      res = alpha * exp(x)
+    end where
+  end function elu_prime
+
+  pure function exponential(x, alpha) result(res)
+    !! Exponential activation function.
+    real(rk), intent(in) :: x(:)
+    real(rk), intent(in) :: alpha
+    real(rk) :: res(size(x))
+    res = exp(x)
+  end function exponential
+
+  pure function exponential_prime(x, alpha) result(res)
+    !! First derivative of the exponential activation function.
+    real(rk), intent(in) :: x(:)
+    real(rk), intent(in) :: alpha
+    real(rk) :: res(size(x))
+    res = exp(x)
+  end function exponential_prime
+  
   pure function gaussian(x, alpha) result(res)
     ! Gaussian activation function.
     real(rk), intent(in) :: x(:)
@@ -63,7 +125,7 @@ contains
     where (0.3 * x > 0)
       res = 1
     elsewhere
-      res = 0
+      res = alpha
     end where
   end function leaky_relu_prime
 
@@ -103,12 +165,19 @@ contains
     res = 1
   end function linear_prime
 
+  ! Balwinder's version (July 5th, 2022)
+  ! - addressing floating point overflow
   pure function sigmoid(x, alpha) result(res)
     ! Sigmoid activation function.
     real(rk), intent(in) :: x(:)
     real(rk), intent(in) :: alpha
-    real(rk) :: res(size(x))
-    res = 1 / (1 + exp(-x))
+    real(rk) :: res(size(x)),y(size(x))
+    real(rk), parameter :: exp_lim = log(tiny(x)) !precision based limiter
+    y(:) = x(:)
+    where(y < exp_lim)
+       y = exp_lim
+    end where
+    res = 1. / (1. + exp(-y))
   endfunction sigmoid
 
   pure function sigmoid_prime(x, alpha) result(res)
@@ -121,6 +190,22 @@ contains
     tmp_alpha = 0.0
     res = sigmoid(x, tmp_alpha) * (1 - sigmoid(x, tmp_alpha))
   end function sigmoid_prime
+
+  pure function softplus(x, alpha) result(res)
+    !! Softplus activation function.
+    real(rk), intent(in) :: x(:)
+    real(rk), intent(in) :: alpha
+    real(rk) :: res(size(x))
+    res = log(exp(x) + 1)
+  end function softplus
+
+  pure function softplus_prime(x, alpha) result(res)
+    ! First derivative of the Softplus activation function.
+    real(rk), intent(in) :: x(:)
+    real(rk), intent(in) :: alpha
+    real(rk) :: res(size(x))
+    res = 1 / (1 + exp(-x))
+  end function softplus_prime
 
   pure function step(x, alpha) result(res)
     ! Step activation function.
